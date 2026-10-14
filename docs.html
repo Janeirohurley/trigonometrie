@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Comprendre les épicycles de Fourier</title>
+  <style>
+    :root {
+      --bg:#0a0e17; --panel:#111726; --panel-2:#161d30; --line:#263049;
+      --text:#e6ecff; --muted:#8290b3; --accent:#4dd4ff; --accent-2:#ff5c8a; --accent-3:#8bff9e;
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.8;}
+    header{padding:24px 18px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,rgba(77,212,255,0.12),transparent);}
+    header h1{margin:0;font-size:22px;}
+    header p{margin:6px 0 0;color:var(--muted);}
+    main{max-width:880px;margin:0 auto;padding:22px 18px;display:flex;flex-direction:column;gap:18px;}
+    article{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px;}
+    article h2{margin:0 0 10px;font-size:18px;}
+    article h3{margin:18px 0 8px;font-size:15px;color:var(--accent);}
+    article p, article li{color:var(--text);margin:8px 0;}
+    article ul{margin:10px 0 10px 20px;}
+    code{background:var(--panel-2);border:1px solid var(--line);padding:1px 6px;border-radius:6px;font-family:ui-monospace,monospace;font-size:0.95em;color:var(--accent-3);}
+    .tip{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:14px;color:var(--text);}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;}
+    .card{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:14px;}
+    footer{border-top:1px solid var(--line);padding:16px 18px;color:var(--muted);text-align:center;}
+    a{color:var(--accent);}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Comprendre les épicycles de Fourier</h1>
+    <p>L’idée simple : des roues dans des roues pour dessiner une forme.</p>
+  </header>
+  <main>
+    <article>
+      <h2>1. L’image mentale</h2>
+      <p>Imagine une grande roue. Sur son bord, tu fixes une petite roue. Sur le bord de cette petite roue, tu poses un stylo.</p>
+      <p>Quand les deux roues tournent, le stylo trace un mouvement bien particulier. Avec <strong>1 roue</strong>, ça donne un cercle. Avec <strong>2 roues</strong>, ça devient déjà plus ondulé. Avec <strong>beaucoup de roues</strong>, on peut reproduire à peu près n’importe quelle forme fermée (cœur, étoile, carré…).</p>
+      <p>C’est exactement ce que fait cette animation. Chaque « cercle » est une roue. <strong>La pointe du dernier cercle est l’endroit où se trouve le stylo</strong> à chaque instant.</p>
+    </article>
+
+    <article>
+      <h2>2. Comment les cercles communiquent</h2>
+      <p>La règle est très simple :</p>
+      <ul>
+        <li>Le <strong>cercle 1</strong> tourne autour du <strong>centre de gravité C₀</strong>. Sa pointe devient le <strong>centre du cercle 2</strong>.</li>
+        <li>Le <strong>cercle 2</strong> tourne autour de cette pointe. Sa pointe devient le <strong>centre du cercle 3</strong>.</li>
+        <li>etc.</li>
+        <li>La <strong>pointe du dernier cercle</strong> trace la courbe.</li>
+      </ul>
+      <p>Regarde le bouton <code>Expliquer les cercles</code> dans l’animation : il met en surbrillance ce passage de relais, un cercle après l’autre.</p>
+    </article>
+
+    <article>
+      <h2>3. Pourquoi des tailles différentes ?</h2>
+      <p>Chaque roue a son propre <strong>rayon</strong> (sa taille).</p>
+      <ul>
+        <li><strong>Les gros cercles</strong> donnent la <em>silhouette</em> globale. C’est eux qui posent les grandes lignes de la forme.</li>
+        <li><strong>Les petits cercles</strong> ajoutent les <em>détails</em>. Petites bosses, pointes, creux fins.</li>
+      </ul>
+      <p>Pour le cœur, seuls <strong>5 à 8</strong> cercles suffisent déjà à le reconnaître. Les suivants ne font que corriger les tout derniers écarts.</p>
+    </article>
+
+    <article>
+      <h2>4. Pourquoi des vitesses différentes ?</h2>
+      <p>Chaque roue tourne à sa propre <strong>vitesse</strong>. Certaines vont plus vite, d’autres plus lentement.</p>
+      <p>De plus, certaines tournent <strong>dans l’autre sens</strong>. Dans l’animation, elles sont colorées en <strong>rose</strong> (k négatif). Tourner à l’envers est souvent indispensable pour former des creux ou des angles nets.</p>
+      <p>Le <strong>temps t</strong> fait avancer toutes ces roues ensemble, chacune à son rythme. C’est ça qui permet de parcourir toute la forme et de la refermer.</p>
+    </article>
+
+    <article>
+      <h2>5. x(t) et y(t) : horizontal et vertical séparés</h2>
+      <p>À chaque instant, le stylo est à <code>(x(t), y(t))</code> : x = position horizontale, y = position verticale.</p>
+      <p>Dans la <strong>vue temporelle</strong> (bande sous le canvas, ou détachée dans une fenêtre), la courbe <strong>bleue</strong> montre <code>x(t)</code> au fil du temps, la <strong>rose</strong> montre <code>y(t)</code>.</p>
+      <p>Regarde-les pendant l’animation : ce sont deux signaux simples qui, <strong>mis ensemble</strong>, reconstituent la trajectoire 2D complète.</p>
+    </article>
+
+    <article>
+      <h2>6. Lire les « Détails pas à pas »</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Les colonnes</h3>
+          <ul>
+            <li><code>k</code> : vitesse/rythme de ce cercle</li>
+            <li><code>r</code> : rayon (taille)</li>
+            <li><code>φ</code> : position de départ à t=0</li>
+            <li><code>θₖ = k·t + φ</code> : angle à cet instant</li>
+            <li><code>dx,dy</code> : ce que ce cercle ajoute au précédent</li>
+            <li><code>centre → pointe</code> : le relais entre cercles</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>L’idée à retenir</h3>
+          <p>Chaque cercle transmet <strong>sa pointe</strong> comme <strong>centre</strong> au suivant. Cumulés bout à bout, ils donnent le point final qui trace la courbe.</p>
+        </div>
+      </div>
+    </article>
+
+    <article>
+      <h2>7. Exercice à faire</h2>
+      <ol>
+        <li>Ouvre l’animation → charge <strong>Cœur</strong></li>
+        <li>Met <strong>N=1</strong>, puis <strong>N=3</strong>, puis <strong>N=8</strong>. Observe comment la forme apparaît.</li>
+        <li>Lance <strong>Vitesse tortue (0.01×)</strong> + <strong>Expliquer les cercles</strong>. Suis le passage centre→pointe.</li>
+        <li>Coche <strong>Repère orthonormé + grille</strong>. Tu vois bien que ce sont des cercles (pas des ovales).</li>
+        <li>Appuie <strong>Détacher</strong> sur la vue temporelle. Compare <code>x(t)</code> et <code>y(t)</code> avec la trajectoire.</li>
+        <li>Essaie <strong>Dentelle</strong> pour voir l’apport des petits cercles et des fréquences inverses (rose).</li>
+      </ol>
+    </article>
+
+    <div class="tip">
+      <strong>À retenir en une phrase :</strong> « La pointe du précédent devient le centre du suivant. Chacun tourne à sa taille et à son rythme. La pointe du dernier dessine la forme. »
+    </div>
+  </main>
+  <footer>
+    Studio d’épicycles de Fourier — pensé pour être compris sans équations complexes
+  </footer>
+</body>
+</html>

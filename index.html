@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Studio d'épicycles de Fourier</title>
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --panel: #111726;
+      --panel-2: #161d30;
+      --line: #263049;
+      --text: #e6ecff;
+      --muted: #8290b3;
+      --accent: #4dd4ff;
+      --accent-2: #ff5c8a;
+      --accent-3: #8bff9e;
+      --warn: #ffcf6b;
+      --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+      --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      overflow: hidden;
+    }
+
+    #app {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      height: 100vh;
+      height: 100dvh;
+    }
+
+    #stage {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      background: var(--bg);
+    }
+
+    #cvWrap {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 45%, #10182b 0%, #0a0e17 70%);
+    }
+
+    #cv {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    #cv.pan {
+      cursor: grab;
+    }
+
+    #cv.pan:active {
+      cursor: grabbing;
+    }
+
+    #hint {
+      position: absolute;
+      left: 16px;
+      bottom: 14px;
+      right: 16px;
+      font-size: 12px;
+      color: var(--muted);
+      background: rgba(10, 14, 23, .72);
+      padding: 7px 11px;
+      border-radius: 9px;
+      border: 1px solid var(--line);
+      pointer-events: none;
+    }
+
+    #badge {
+      position: absolute;
+      left: 16px;
+      top: 14px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--accent);
+      background: rgba(10, 14, 23, .72);
+      padding: 7px 11px;
+      border-radius: 9px;
+      border: 1px solid var(--line);
+      pointer-events: none;
+    }
+
+    #badge b {
+      color: var(--accent-3);
+    }
+
+    #badge .z {
+      color: var(--muted);
+    }
+
+    #tools {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      gap: 6px;
+      background: rgba(10, 14, 23, .72);
+      padding: 6px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+    }
+
+    #tools button {
+      font-size: 12px;
+      padding: 7px 9px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 7px;
+      cursor: pointer;
+    }
+
+    #tools button:hover {
+      border-color: var(--accent);
+    }
+
+    #tools button.active {
+      background: var(--accent);
+      color: #04121a;
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+
+    #tools .sep {
+      width: 1px;
+      background: var(--line);
+      margin: 2px 2px;
+    }
+
+    #caption {
+      position: absolute;
+      left: 50%;
+      top: 58px;
+      transform: translateX(-50%);
+      max-width: min(600px, 92%);
+      background: rgba(10, 14, 23, .88);
+      border: 1px solid var(--accent-3);
+      color: var(--text);
+      font-size: 12.5px;
+      line-height: 1.55;
+      padding: 9px 13px;
+      border-radius: 10px;
+      display: none;
+      text-align: center;
+      pointer-events: none;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, .45);
+    }
+
+    #caption.on {
+      display: block;
+    }
+
+    #caption b {
+      color: var(--accent-3);
+    }
+
+    #caption .k {
+      color: var(--accent);
+      font-family: var(--mono);
+    }
+
+    #stepList {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      line-height: 1.55;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 10px;
+      max-height: 220px;
+      overflow: auto;
+      white-space: pre;
+      color: var(--text);
+    }
+
+    #stepList b {
+      color: var(--accent);
+    }
+
+    #stepList .k {
+      color: var(--accent-2);
+    }
+
+    #stepList .v {
+      color: var(--accent-3);
+    }
+
+    #waveWrap {
+      position: relative;
+      height: 132px;
+      flex: 0 0 auto;
+      border-top: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    #wave {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    #waveWrap .wlabel {
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+    }
+
+    #waveWrap .wlabel i {
+      color: var(--accent-2);
+      font-style: normal;
+    }
+
+  #waveWrap .wsub {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 10.5px;
+    color: var(--muted);
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  #waveTools {
+    position: absolute;
+    top: 6px;
+    right: 210px;
+    display: flex;
+    gap: 6px;
+    z-index: 3;
+  }
+
+  #waveTools button {
+    font-size: 11px;
+    padding: 5px 7px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: 7px;
+    cursor: pointer;
+  }
+
+  #waveTools button:hover {
+    border-color: var(--accent);
+  }
+
+  #waveTools button.active {
+    background: var(--accent);
+    color: #04121a;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  #waveDetachWrap {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 9, 18, .6);
+    backdrop-filter: blur(2px);
+    z-index: 20;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  #waveDetachWrap.on {
+    display: flex;
+  }
+
+  #waveFloat {
+    width: min(1100px, 96vw);
+    height: min(520px, 88vh);
+    display: flex;
+    flex-direction: column;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, .5);
+    overflow: hidden;
+  }
+
+  #waveFloatHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel-2);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  #waveFloatHead .title {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  #waveFloatBody {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    background: var(--panel);
+  }
+
+  #waveFloatBody canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  #waveFloatFoot {
+    border-top: 1px solid var(--line);
+    padding: 8px 12px;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  #waveFloatFoot .item {
+    font-family: var(--mono);
+  }
+
+  #waveFloatFoot .item b {
+    color: var(--accent);
+  }
+
+  #waveFloatHead .zoombar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  #waveFloatHead .zoombar button {
+    width: 26px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--text);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+  }
+
+  #waveFloatHead .zoombar button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  #waveFloatHead .zoombar span {
+    min-width: 44px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  #waveFloatBody canvas.pan {
+    cursor: grabbing;
+  }
+
+
+    aside {
+      background: var(--panel);
+      border-left: 1px solid var(--line);
+      padding: 18px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    h1 {
+      font-size: 15px;
+      margin: 0;
+      letter-spacing: .3px;
+    }
+
+    h1 span {
+      color: var(--accent);
+    }
+
+    .sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 3px 0 0;
+      line-height: 1.5;
+    }
+
+    .group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .group>label,
+    .lbl {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--muted);
+    }
+
+    .val {
+      color: var(--accent);
+      font-family: var(--mono);
+    }
+
+    select,
+    button {
+      font-family: var(--sans);
+      font-size: 13px;
+      color: var(--text);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 10px 11px;
+      cursor: pointer;
+      transition: .15s;
+    }
+
+    button:hover,
+    select:hover {
+      border-color: var(--accent);
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: #04121a;
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+
+    button.primary:hover {
+      filter: brightness(1.12);
+    }
+
+    button.on {
+      background: var(--accent-3);
+      color: #06210d;
+      border-color: var(--accent-3);
+      font-weight: 600;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .row>* {
+      flex: 1;
+      min-width: 0;
+    }
+
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--accent);
+      height: 22px;
+    }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .check input {
+      accent-color: var(--accent);
+      width: 16px;
+      height: 16px;
+    }
+
+    .formula,
+    .formula * {
+      font-family: var(--mono);
+    }
+
+    .formula {
+      font-size: 11.5px;
+      line-height: 1.75;
+      color: var(--text);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .formula b {
+      color: var(--accent);
+    }
+
+    .formula i {
+      color: var(--accent-2);
+      font-style: normal;
+    }
+
+    .formula u {
+      color: var(--accent-3);
+      text-decoration: none;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid var(--line);
+      margin: 0;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .metric {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 11px;
+    }
+
+    .metric .t {
+      font-size: 10.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    .metric .v {
+      font-family: var(--mono);
+      font-size: 16px;
+      margin-top: 3px;
+      color: var(--accent-3);
+    }
+
+    .metric .v.warn {
+      color: var(--warn);
+    }
+
+    .metric .v.bad {
+      color: var(--accent-2);
+    }
+
+    #chartWrap {
+      position: relative;
+      height: 110px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    #chart {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    th,
+    td {
+      text-align: right;
+      padding: 4px 5px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    td:first-child,
+    th:first-child {
+      text-align: left;
+      color: var(--accent);
+    }
+
+    .tableWrap {
+      max-height: 190px;
+      overflow-y: auto;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    .legend {
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .legend .k {
+      color: var(--accent);
+      font-family: var(--mono);
+    }
+
+    .legend .k2 {
+      color: var(--accent-2);
+      font-family: var(--mono);
+    }
+
+    @media (max-width: 860px) {
+      #app {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(44vh, 1fr) auto;
+      }
+
+      aside {
+        border-left: none;
+        border-top: 1px solid var(--line);
+        max-height: 52vh;
+      }
+
+      #hint {
+        display: none;
+      }
+
+      #waveWrap {
+        height: 104px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      aside {
+        padding: 13px;
+        gap: 12px;
+        max-height: 56vh;
+      }
+
+      h1 {
+        font-size: 14px;
+      }
+
+      #tools button {
+        padding: 6px 7px;
+        font-size: 11px;
+      }
+
+      #waveWrap {
+        height: 92px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div id="stage">
+      <div id="cvWrap">
+        <canvas id="cv"></canvas>
+        <div id="badge">N = <b id="badgeN">0</b> · err <b id="badgeErr">–</b> · <span class="z"
+            id="badgeZoom">100%</span></div>
+        <div id="tools">
+          <button data-tool="draw" class="active" title="Dessiner">✏︎ Dessiner</button>
+          <button data-tool="pan" title="Déplacer">✋ Vue</button>
+          <span class="sep"></span>
+          <button id="zoomIn" title="Zoom +">＋</button>
+          <button id="zoomOut" title="Zoom −">－</button>
+          <button id="fit" title="Cadrer">⤢</button>
+        </div>
+        <div id="hint">Clique-glisse pour dessiner · molette / pincement pour zoomer · ✋ Vue pour déplacer</div>
+        <div id="caption"></div>
+      </div>
+      <div id="waveWrap">
+        <canvas id="wave"></canvas>
+        <span class="wlabel">x(t) <i>y(t)</i></span>
+        <div id="waveTools">
+          <button id="waveDetach" type="button">⤢ Détacher</button>
+        </div>
+        <span class="wsub">signal cible (pointillé) vs reconstruction (plein)</span>
+      </div>
+    </div>
+
+    <aside>
+      <div>
+        <h1>Studio d'épicycles <span>de Fourier</span></h1>
+        <p class="sub">Toute courbe fermée = somme de vecteurs qui tournent, chaque vecteur tournant <b>k</b> fois plus
+          vite.</p>
+        <button id="openDocs" type="button" style="margin-top:10px;width:100%">📖 Comprendre (aide &amp; explication)</button>
+      </div>
+
+      <hr />
+
+      <div class="group">
+        <label>Forme</label>
+        <select id="preset">
+          <option value="heart">Cœur</option>
+          <option value="star">Étoile</option>
+          <option value="infinity">∞ (lemniscate)</option>
+          <option value="flower">Fleur</option>
+          <option value="square">Carré</option>
+          <option value="circle">Cercle</option>
+          <option value="lace">Dentelle (spectre riche)</option>
+        </select>
+        <button id="clear" class="primary">Effacer &amp; dessiner à la main</button>
+      </div>
+
+      <div class="group">
+        <label>Harmoniques N : <span class="val" id="nVal">0</span> / <span class="val" id="nMax">0</span></label>
+        <input type="range" id="nRange" min="1" max="1" value="1" />
+        <div class="row">
+          <button id="playPause">Pause</button>
+          <button id="nMinus">−1</button>
+          <button id="nPlus">+1</button>
+        </div>
+        <button id="progression">▶ Lancer la progression</button>
+      </div>
+
+      <div class="group">
+        <label>Vitesse : <span class="val" id="spVal">1.00×</span></label>
+        <input type="range" id="speed" min="0" max="100" step="1" value="80" />
+        <button id="turtle">🐢 Vitesse tortue</button>
+      </div>
+
+      <div class="group">
+        <label class="check"><input type="checkbox" id="showFrame" checked /> Repère orthonormé + grille</label>
+        <label class="check"><input type="checkbox" id="showCircles" checked /> Afficher les cercles</label>
+        <label class="check"><input type="checkbox" id="showTarget" checked /> Afficher la courbe cible</label>
+        <label class="check"><input type="checkbox" id="showCoords" /> Afficher les coordonnées des points</label>
+        <label class="check"><input type="checkbox" id="showLabels" checked /> Afficher les étiquettes des cercles</label>
+      </div>
+
+      <div class="group">
+        <label>Scénario : comment les cercles communiquent</label>
+        <button id="scenario">▶ Expliquer les cercles</button>
+        <p class="legend">Chaque cercle pose sa <b>pointe</b> exactement là où le suivant prend son <b>centre</b>. L'information « remonte » la chaîne : les grands rayons donnent la forme, les petits les détails.</p>
+      </div>
+
+      <div class="group">
+        <label>Détails pas à pas (chaque cercle communique)</label>
+        <div id="stepList">–</div>
+      </div>
+
+      <div id="waveDetachWrap">
+        <div id="waveFloat">
+          <div id="waveFloatHead">
+            <span class="title">Vue temporelle détachée · x(t) / y(t)</span>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <div class="zoombar">
+                <button id="wfZoomOut" type="button" title="Dézoomer">−</button>
+                <span id="wfZoomBadge">100%</span>
+                <button id="wfZoomIn" type="button" title="Zoomer">+</button>
+                <button id="wfZoomFit" type="button" title="Ajuster">⤢</button>
+              </div>
+              <button id="wfClose" type="button">Fermer</button>
+            </div>
+          </div>
+          <div id="waveFloatBody">
+            <canvas id="waveFloatCanvas"></canvas>
+          </div>
+          <div id="waveFloatFoot">
+            <span class="item">t = <b id="wfT">–</b></span>
+            <span class="item">N = <b id="wfN">–</b></span>
+            <span class="item">θ = <b id="wfTheta">–</b></span>
+            <span class="item">point = <b id="wfPt">–</b></span>
+            <span class="item">C₀ = <b id="wfC0">–</b></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <label>Analyse de la reconstruction</label>
+        <div class="metrics">
+          <div class="metric">
+            <div class="t">Erreur max</div>
+            <div class="v" id="mMax">–</div>
+          </div>
+          <div class="metric">
+            <div class="t">Erreur RMS</div>
+            <div class="v" id="mRms">–</div>
+          </div>
+          <div class="metric">
+            <div class="t">Erreur relative</div>
+            <div class="v" id="mRel">–</div>
+          </div>
+          <div class="metric">
+            <div class="t">Énergie captée</div>
+            <div class="v" id="mEner">–</div>
+          </div>
+        </div>
+        <label style="margin-top:4px">Convergence de l'erreur (échelle log)</label>
+        <div id="chartWrap"><canvas id="chart"></canvas></div>
+      </div>
+
+      <hr />
+
+      <div class="group">
+        <label>Coefficients (formule aₖ, bₖ, cₖ, dₖ)</label>
+        <div class="tableWrap">
+          <table id="coefTable">
+            <thead>
+              <tr>
+                <th>k</th>
+                <th>aₖ</th>
+                <th>bₖ</th>
+                <th>cₖ</th>
+                <th>dₖ</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr />
+
+      <div class="group">
+        <label>La formule exécutée</label>
+        <div class="formula">x<sub>N</sub>(t) = Σ <b>aₖ</b>·cos(k·t) + <b>bₖ</b>·sin(k·t)
+
+          y<sub>N</sub>(t) = Σ <i>cₖ</i>·cos(k·t) + <i>dₖ</i>·sin(k·t)
+
+          z(t) = Σ <u>Cₖ</u>·e^(i·k·t) (forme compacte)
+          Cₖ = reₖ + i·imₖ (fréquence k)</div>
+        <p class="legend">
+          <span class="k">k</span> = vitesse de rotation.<br />
+          <span class="k">Cₖ</span> = vecteur tournant (rayon |Cₖ|, phase initiale).<br />
+          <span class="k2">k &lt; 0</span> tourne en sens inverse : révèle les coins et détails.<br />
+          k = 0 = centre de gravité (départ de la chaîne).
+        </p>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    /* =====================================================================
+       ÉPICYCLES DE FOURIER — moteur
+       ---------------------------------------------------------------------
+       Une courbe fermée = M points complexes zₙ = xₙ + i·yₙ.
+       Transformée de Fourier discrète (DFT) :
+    
+            Cₖ = (1/M) Σₙ zₙ · e^(−i·2π·k·n/M)
+    
+       Reconstruction (la formule x_N, y_N sous forme complexe) :
+    
+            z(t) = Σₖ Cₖ · e^( i·k·θ ),   θ = 2π·t/M
+    
+       Chaque Cₖ·e^(i·k·θ) est un VECTEUR de longueur |Cₖ| tournant à la
+       vitesse k ; mis bout à bout, sa pointe trace la courbe. Le terme k=0
+       (= centre de gravité) est le point de DÉPART, on ne l'anime pas.
+       ===================================================================== */
+
+    const cv = document.getElementById('cv');
+    const ctx = cv.getContext('2d');
+    const wave = document.getElementById('wave');
+    const waveCtx = wave.getContext('2d');
+    const chart = document.getElementById('chart');
+    const chartCtx = chart.getContext('2d');
+    const waveFloatCanvas = document.getElementById('waveFloatCanvas');
+    const waveFloatCtx = waveFloatCanvas.getContext('2d');
+    let WFDPR = Math.min(window.devicePixelRatio || 1, 2);
+    function resizeWaveFloat() {
+      const r = waveFloatCanvas.getBoundingClientRect();
+      const w = r.width, h = r.height;
+      if (!w || !h) return;
+      WFDPR = Math.min(window.devicePixelRatio || 1, 2);
+      waveFloatCanvas.width = Math.round(w * WFDPR);
+      waveFloatCanvas.height = Math.round(h * WFDPR);
+      waveFloatCtx.setTransform(WFDPR, 0, 0, WFDPR, 0, 0);
+    }
+
+    /* Zoom / panoramique de la vue temporelle (partagé par la modale) */
+    const waveFloatView = { z: 1, x: 0, y: 0 };
+    const WAVE_ZMIN = 0.5, WAVE_ZMAX = 40;
+    function updateWaveZoomBadge() {
+      const el = document.getElementById('wfZoomBadge');
+      if (el) el.textContent = Math.round(waveFloatView.z * 100) + '%';
+    }
+    function waveZoomAt(px, py, factor) {
+      const z2 = Math.min(WAVE_ZMAX, Math.max(WAVE_ZMIN, waveFloatView.z * factor));
+      const rx = (px - waveFloatView.x) / waveFloatView.z;
+      const ry = (py - waveFloatView.y) / waveFloatView.z;
+      waveFloatView.z = z2;
+      waveFloatView.x = px - rx * z2;
+      waveFloatView.y = py - ry * z2;
+      updateWaveZoomBadge();
+    }
+    function resetWaveZoom() { waveFloatView.z = 1; waveFloatView.x = 0; waveFloatView.y = 0; updateWaveZoomBadge(); }
+
+    (function setupWaveFloatInteractions() {
+      const c = waveFloatCanvas;
+      const local = e => { const r = c.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+      c.addEventListener('wheel', e => { e.preventDefault(); const p = local(e); waveZoomAt(p.x, p.y, e.deltaY < 0 ? 1.12 : 1 / 1.12); }, { passive: false });
+      let dragging = false, lx = 0, ly = 0;
+      c.addEventListener('mousedown', e => { dragging = true; lx = e.clientX; ly = e.clientY; waveFloatCanvas.classList.add('pan'); });
+      window.addEventListener('mousemove', e => {
+        if (!dragging) return;
+        waveFloatView.x += e.clientX - lx; waveFloatView.y += e.clientY - ly;
+        lx = e.clientX; ly = e.clientY;
+      });
+      window.addEventListener('mouseup', () => { dragging = false; waveFloatCanvas.classList.remove('pan'); });
+      waveFloatCanvas.addEventListener('dblclick', resetWaveZoom);
+      document.getElementById('wfZoomIn').addEventListener('click', () => {
+        const r = waveFloatCanvas.getBoundingClientRect();
+        waveZoomAt(r.width / 2, r.height / 2, 1.15);
+      });
+      document.getElementById('wfZoomOut').addEventListener('click', () => {
+        const r = waveFloatCanvas.getBoundingClientRect();
+        waveZoomAt(r.width / 2, r.height / 2, 1 / 1.15);
+      });
+      document.getElementById('wfZoomFit').addEventListener('click', resetWaveZoom);
+      updateWaveZoomBadge();
+    })();
+
+    let W = 0, H = 0;
+    const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+    /* ---------- Caméra : monde -> écran (échelle + translation) ----------- */
+    const camera = { scale: 1, tx: 0, ty: 0 };
+    function toWorld(p) { return { x: (p.x - camera.tx) / camera.scale, y: (p.y - camera.ty) / camera.scale }; }
+    function zoomAt(pt, factor) {
+      const before = toWorld(pt);
+      camera.scale = Math.min(20, Math.max(0.1, camera.scale * factor));
+      camera.tx = pt.x - before.x * camera.scale;
+      camera.ty = pt.y - before.y * camera.scale;
+      updateZoomBadge();
+    }
+    function fitView() {
+      if (!state.points || !state.points.length) {
+        camera.scale = 1; camera.tx = 0; camera.ty = 0; updateZoomBadge(); return;
+      }
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const p of state.points) {
+        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+        minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+      }
+      const bw = Math.max(1, maxX - minX), bh = Math.max(1, maxY - minY);
+      const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+      const s = Math.min(W * 0.8 / bw, H * 0.8 / bh);
+      camera.scale = Math.min(20, Math.max(0.1, s));
+      camera.tx = W / 2 - cx * camera.scale;
+      camera.ty = H / 2 - cy * camera.scale;
+      updateZoomBadge();
+    }
+    function updateZoomBadge() { document.getElementById('badgeZoom').textContent = Math.round(camera.scale * 100) + '%'; }
+
+    function resize() {
+      const r = cv.getBoundingClientRect();
+      W = r.width; H = r.height;
+      cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      drawChart();
+    }
+    window.addEventListener('resize', resize);
+
+    /* ---------- 1. Courbes prêtes à l'emploi (M échantillons) ------------- */
+    const M = 300;
+
+    function presetPoints(name) {
+      const cx = W / 2, cy = H / 2;
+      const s = Math.min(W, H) * 0.30;
+      const pts = [];
+      for (let i = 0; i < M; i++) {
+        const t = (i / M) * 2 * Math.PI;
+        let x, y;
+        switch (name) {
+          case 'heart':
+            x = 100 * Math.pow(Math.sin(t), 3);
+            y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+            x *= s / 18; y *= s / 18;
+            break;
+          case 'star': {
+            const R = s, r = s * 0.42, a = t * 5;
+            const rad = r + (R - r) * Math.pow(Math.abs(Math.cos(a * 0.5)), 0.6);
+            x = rad * Math.cos(t); y = rad * Math.sin(t);
+            break;
+          }
+          case 'infinity':
+            x = s * Math.cos(t); y = s * Math.sin(2 * t) / 2;
+            break;
+          case 'flower': {
+            const rad = s * (0.6 + 0.4 * Math.cos(6 * t));
+            x = rad * Math.cos(t); y = rad * Math.sin(t);
+            break;
+          }
+          case 'lace':
+            x = s / 3 * (Math.cos(t) + 0.5 * Math.cos(5 * t) + 0.3 * Math.cos(9 * t) + 0.2 * Math.cos(13 * t));
+            y = s / 3 * (Math.sin(t) - 0.5 * Math.sin(5 * t) + 0.3 * Math.sin(9 * t) - 0.2 * Math.sin(13 * t));
+            break;
+          case 'square': {
+            const p = i / M * 4, seg = Math.floor(p), f = p - seg, a2 = s;
+            if (seg === 0) { x = -a2 + 2 * a2 * f; y = -a2; }
+            else if (seg === 1) { x = a2; y = -a2 + 2 * a2 * f; }
+            else if (seg === 2) { x = a2 - 2 * a2 * f; y = a2; }
+            else { x = -a2; y = a2 - 2 * a2 * f; }
+            break;
+          }
+          default:
+            x = s * Math.cos(t); y = s * Math.sin(t);
+        }
+        pts.push({ x: cx + x, y: cy + y });
+      }
+      return pts;
+    }
+
+    /* ---------- 2. DFT : de la courbe vers les coefficients Cₖ ------------ */
+    function dft(points) {
+      const n = points.length;
+      const coef = [];
+      for (let k = 0; k < n; k++) {
+        let re = 0, im = 0;
+        for (let i = 0; i < n; i++) {
+          const phi = (2 * Math.PI * k * i) / n;
+          const cos = Math.cos(phi), sin = Math.sin(phi);
+          const x = points[i].x, y = points[i].y;
+          re += x * cos + y * sin;      // (x + iy)(cos − i sin)
+          im += y * cos - x * sin;
+        }
+        re /= n; im /= n;
+        const freq = k > n / 2 ? k - n : k;   // fréquences négatives = rotation inverse
+        coef.push({ freq, re, im, amp: Math.hypot(re, im), phase: Math.atan2(im, re) });
+      }
+      return coef;
+    }
+
+    /* Fréquences réelles aₖ,bₖ,cₖ,dₖ (repli des couples ±k) pour la table. */
+    function realCoeffs(coef) {
+      const map = new Map();
+      coef.forEach(c => map.set(c.freq, c));
+      const K = Math.floor(M / 2);
+      const out = [];
+      for (let k = 1; k <= K; k++) {
+        const p = map.get(k) || { re: 0, im: 0 };
+        const m = map.get(-k) || { re: 0, im: 0 };
+        const a = p.re + m.re;
+        const b = m.im - p.im;
+        const c = p.im + m.im;
+        const d = p.re - m.re;
+        out.push({ k, a, b, c, d, mag: Math.hypot(a, b) + Math.hypot(c, d) });
+      }
+      out.sort((u, v) => v.mag - u.mag);
+      return out;
+    }
+
+    /* ---------- 3. État ---------------------------------------------------- */
+    const state = {
+      points: null,
+      origin: { x: 0, y: 0 },
+      epicycles: [],
+      realCoefs: [],
+      N: 1,
+      t: 0,
+      playing: true,
+      speed: 1,
+      trace: [],
+      drawing: false,
+      sketch: [],
+      errorCurve: { curve: [], scale: 1 },
+      progTimer: null,
+      scenario: { active: false, i: -1, timer: null },
+      valueRange: { x0: -1, x1: 1, y0: -1, y1: 1 },
+    };
+    let lastLive = 0;
+
+    /* Enveloppe de toute l'animation : points cibles + toutes les sommes
+       partielles (N = 1..max). Garantit qu'aucune courbe n'est rognée/écrêtée,
+       aussi bien dans la fenêtre principale que dans la vue détachée. */
+    function computeWaveRange(points) {
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      const add = (x, y) => {
+        if (x < x0) x0 = x; if (x > x1) x1 = x;
+        if (y < y0) y0 = y; if (y > y1) y1 = y;
+      };
+      for (const p of points) add(p.x, p.y);
+      const maxN = Math.max(1, state.epicycles.length);
+      for (let s = 0; s < M; s++) {
+        let x = state.origin.x, y = state.origin.y;
+        add(x, y);
+        for (let j = 0; j < maxN; j++) {
+          const c = state.epicycles[j], ang = (c.freq * s * 2 * Math.PI) / M + c.phase;
+          x += c.amp * Math.cos(ang); y += c.amp * Math.sin(ang);
+          add(x, y);
+        }
+      }
+      if (!isFinite(x0)) return { x0: -1, x1: 1, y0: -1, y1: 1 };
+      const padX = Math.max(1, (x1 - x0) * 0.06), padY = Math.max(1, (y1 - y0) * 0.06);
+      return { x0: x0 - padX, x1: x1 + padX, y0: y0 - padY, y1: y1 + padY };
+    }
+
+    function loadShape(points) {
+      state.points = points;
+      const coef = dft(points);
+
+      const c0 = coef.find(c => c.freq === 0);
+      state.origin = { x: c0 ? c0.re : 0, y: c0 ? c0.im : 0 };
+
+      state.epicycles = coef
+        .filter(c => c.freq !== 0 && c.amp > 1e-6)
+        .map(c => ({ freq: c.freq, amp: c.amp, phase: c.phase }))
+        .sort((u, v) => v.amp - u.amp);
+
+      state.realCoefs = realCoeffs(coef);
+
+      // plage des valeurs pour la vue temporelle : enveloppe complète
+      state.valueRange = computeWaveRange(points);
+
+
+      const maxN = Math.max(1, state.epicycles.length);
+      const nRange = document.getElementById('nRange');
+      nRange.max = maxN;
+      document.getElementById('nMax').textContent = maxN;
+
+      computeErrorCurve();
+      buildCoefTable();
+
+      state.N = Math.min(Math.max(1, state.N), maxN);
+      nRange.value = state.N;
+      syncN();
+      state.trace = [];
+      state.t = 0;
+      fitView();
+      try { sendFloatFull(); } catch (e) { }
+    }
+
+    /* ---------- 4. Reconstruction & erreur -------------------------------- */
+    function reconstructAt(sample, N) {
+      const theta = (sample * 2 * Math.PI) / M;
+      let x = state.origin.x, y = state.origin.y;
+      for (let j = 0; j < N; j++) {
+        const c = state.epicycles[j];
+        const ang = c.freq * theta + c.phase;
+        x += c.amp * Math.cos(ang);
+        y += c.amp * Math.sin(ang);
+      }
+      return { x, y };
+    }
+
+    function computeErrorCurve() {
+      const target = state.points;
+      const maxN = state.epicycles.length;
+      let scale = 1;
+      for (const p of target) scale = Math.max(scale, Math.hypot(p.x - state.origin.x, p.y - state.origin.y));
+
+      const accX = new Array(M).fill(state.origin.x);
+      const accY = new Array(M).fill(state.origin.y);
+      const curve = [];
+      for (let N = 1; N <= maxN; N++) {
+        const c = state.epicycles[N - 1];
+        for (let s = 0; s < M; s++) {
+          const theta = (s * 2 * Math.PI) / M;
+          const ang = c.freq * theta + c.phase;
+          accX[s] += c.amp * Math.cos(ang);
+          accY[s] += c.amp * Math.sin(ang);
+        }
+        let maxE = 0, sumSq = 0;
+        for (let s = 0; s < M; s++) {
+          const d = Math.hypot(accX[s] - target[s].x, accY[s] - target[s].y);
+          if (d > maxE) maxE = d;
+          sumSq += d * d;
+        }
+        const rms = Math.sqrt(sumSq / M);
+        curve.push({ N, max: maxE, rms, rel: (rms / scale) * 100 });
+      }
+      state.errorCurve = { curve, scale };
+    }
+
+    function totalAmp() { let s = 0; for (const c of state.epicycles) s += c.amp; return s || 1; }
+
+    function syncMetrics() {
+      const cur = state.errorCurve.curve[state.N - 1];
+      if (!cur) return;
+      document.getElementById('mMax').textContent = cur.max.toFixed(1) + ' px';
+      document.getElementById('mRms').textContent = cur.rms.toFixed(2) + ' px';
+      const relEl = document.getElementById('mRel');
+      relEl.textContent = cur.rel.toFixed(cur.rel < 1 ? 2 : 1) + ' %';
+      relEl.className = 'v ' + (cur.rel < 1 ? '' : cur.rel < 8 ? 'warn' : 'bad');
+
+      let captured = 0;
+      for (let i = 0; i < state.N; i++) captured += state.epicycles[i].amp;
+      const ener = (captured / totalAmp()) * 100;
+      const enEl = document.getElementById('mEner');
+      enEl.textContent = ener.toFixed(1) + ' %';
+      enEl.className = 'v ' + (ener > 95 ? '' : ener > 80 ? 'warn' : 'bad');
+
+      document.getElementById('badgeErr').textContent = cur.rms.toFixed(2) + 'px';
+    }
+
+    function syncN() {
+      document.getElementById('nVal').textContent = state.N;
+      document.getElementById('badgeN').textContent = state.N;
+      syncMetrics();
+      drawChart();
+    }
+
+    function buildCoefTable() {
+      const tb = document.querySelector('#coefTable tbody');
+      tb.innerHTML = '';
+      for (const r of state.realCoefs.slice(0, 40)) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${r.k}</td><td>${r.a.toFixed(1)}</td><td>${r.b.toFixed(1)}</td><td>${r.c.toFixed(1)}</td><td>${r.d.toFixed(1)}</td>`;
+        tb.appendChild(tr);
+      }
+    }
+
+    /* ---------- 5. Graphe de convergence ---------------------------------- */
+    function drawChart() {
+      const r = chart.getBoundingClientRect();
+      const w = r.width, h = r.height;
+      if (!w || !h) return;
+      chart.width = Math.round(w * DPR); chart.height = Math.round(h * DPR);
+      chartCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      chartCtx.clearRect(0, 0, w, h);
+
+      const data = state.errorCurve.curve;
+      if (!data || !data.length) return;
+
+      const pad = 8;
+      const logRms = data.map(d => Math.log10(d.rms + 1e-4));
+      let lo = Math.min(...logRms), hi = Math.max(...logRms);
+      if (hi - lo < 1e-6) hi = lo + 1;
+      const X = i => pad + (i / (data.length - 1 || 1)) * (w - 2 * pad);
+      const Y = v => h - pad - ((v - lo) / (hi - lo)) * (h - 2 * pad);
+
+      chartCtx.beginPath();
+      data.forEach((d, i) => { const x = X(i), y = Y(logRms[i]); i ? chartCtx.lineTo(x, y) : chartCtx.moveTo(x, y); });
+      chartCtx.lineTo(X(data.length - 1), h); chartCtx.lineTo(X(0), h); chartCtx.closePath();
+      chartCtx.fillStyle = 'rgba(77,212,255,0.12)'; chartCtx.fill();
+
+      chartCtx.beginPath();
+      data.forEach((d, i) => { const x = X(i), y = Y(logRms[i]); i ? chartCtx.lineTo(x, y) : chartCtx.moveTo(x, y); });
+      chartCtx.strokeStyle = '#4dd4ff'; chartCtx.lineWidth = 1.6; chartCtx.stroke();
+
+      const i = state.N - 1;
+      const x = X(i), y = Y(logRms[i]);
+      chartCtx.beginPath(); chartCtx.moveTo(x, pad); chartCtx.lineTo(x, h - pad);
+      chartCtx.strokeStyle = 'rgba(139,255,158,0.35)'; chartCtx.lineWidth = 1; chartCtx.stroke();
+      chartCtx.beginPath(); chartCtx.arc(x, y, 3.2, 0, 2 * Math.PI); chartCtx.fillStyle = '#8bff9e'; chartCtx.fill();
+    }
+
+    /* ---------- 6. Vue temporelle x(t) / y(t) ----------------------------- */
+    /* Rend la vue temporelle dans n'importe quel contexte 2D + taille donnée. */
+    function renderWave(g, w, h, view) {
+      if (!w || !h) return;
+      g.clearRect(0, 0, w, h);
+      if (!state.points) return;
+      const useView = view && (view.z !== 1 || view.x || view.y);
+      if (useView) { g.save(); g.translate(view.x, view.y); g.scale(view.z, view.z); }
+      const vr = state.valueRange;
+      const mapY = v => h - 6 - ((v - vr.y0) / (vr.y1 - vr.y0)) * (h - 12);
+      const mapX = s => (s / (M - 1)) * w;
+
+      g.strokeStyle = 'rgba(38,48,73,0.9)'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(0, h / 2); g.lineTo(w, h / 2); g.stroke();
+
+      const N = Math.min(state.N, state.epicycles.length);
+
+      g.setLineDash([3, 3]); g.lineWidth = 1; g.globalAlpha = 0.5;
+      for (const [key, color] of [['x', '#4dd4ff'], ['y', '#ff5c8a']]) {
+        g.beginPath();
+        for (let s = 0; s < M; s++) { const v = key === 'x' ? state.points[s].x : state.points[s].y; const px = mapX(s), py = mapY(v); s ? g.lineTo(px, py) : g.moveTo(px, py); }
+        g.strokeStyle = color; g.stroke();
+      }
+      g.globalAlpha = 1; g.setLineDash([]);
+
+      g.lineWidth = 1.8;
+      for (const [key, color] of [['x', '#4dd4ff'], ['y', '#ff5c8a']]) {
+        g.beginPath();
+        for (let s = 0; s < M; s++) {
+          const p = reconstructAt(s, N);
+          const v = key === 'x' ? p.x : p.y;
+          const px = mapX(s), py = mapY(v);
+          s ? g.lineTo(px, py) : g.moveTo(px, py);
+        }
+        g.strokeStyle = color; g.stroke();
+      }
+
+      const cxp = mapX(state.t);
+      g.beginPath(); g.moveTo(cxp, 0); g.lineTo(cxp, h);
+      g.strokeStyle = 'rgba(139,255,158,0.8)'; g.lineWidth = 1; g.stroke();
+
+      const p = reconstructAt(Math.floor(state.t) % M, N);
+      for (const [v, color] of [[p.x, '#4dd4ff'], [p.y, '#ff5c8a']]) {
+        g.beginPath(); g.arc(cxp, mapY(v), 3, 0, 2 * Math.PI);
+        g.fillStyle = color; g.fill();
+      }
+      if (useView) g.restore();
+    }
+
+    function drawWave() {
+      const r = wave.getBoundingClientRect();
+      const w = r.width, h = r.height;
+      if (w && h) {
+        wave.width = Math.round(w * DPR); wave.height = Math.round(h * DPR);
+        waveCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        renderWave(waveCtx, w, h);
+      }
+
+      const det = document.getElementById('waveDetachWrap');
+      if (det && det.classList.contains('on')) {
+        const rr = waveFloatCanvas.getBoundingClientRect();
+        if (rr.width && rr.height) {
+          renderWave(waveFloatCtx, rr.width, rr.height, waveFloatView);
+          const N = Math.min(state.N, state.epicycles.length);
+          const tip = reconstructAt(Math.floor(state.t) % M, N);
+          document.getElementById('wfT').textContent = state.t.toFixed(1);
+          document.getElementById('wfN').textContent = N;
+          document.getElementById('wfTheta').textContent = ((state.t * 2 * Math.PI) / M).toFixed(3) + ' rad';
+          document.getElementById('wfPt').textContent = `(${tip.x.toFixed(1)}, ${tip.y.toFixed(1)})`;
+          document.getElementById('wfC0').textContent = `(${state.origin.x.toFixed(0)}, ${state.origin.y.toFixed(0)})`;
+        }
+      }
+    }
+
+    /* ---------- 6b. Repère orthonormé (grille + axes + graduations) ------ */
+    function niceStep(targetPx) {
+      const world = targetPx / camera.scale;
+      const pow = Math.pow(10, Math.floor(Math.log10(world)));
+      const c = world / pow;
+      const m = c < 1.5 ? 1 : c < 3.5 ? 2 : c < 7.5 ? 5 : 10;
+      return m * pow;
+    }
+    function drawFrame() {
+      const ax = state.origin.x, ay = state.origin.y;   // origine math = C₀ (terme k=0)
+      const inv = 1 / camera.scale;
+      const step = niceStep(72);
+      const xmin = (0 - camera.tx) / camera.scale, xmax = (W - camera.tx) / camera.scale;
+      const ymin = (0 - camera.ty) / camera.scale, ymax = (H - camera.ty) / camera.scale;
+
+      const i0 = Math.floor((xmin - ax) / step), i1 = Math.ceil((xmax - ax) / step);
+      const j0 = Math.floor((ymin - ay) / step), j1 = Math.ceil((ymax - ay) / step);
+
+      // grille orthonormée (carrés, car le zoom est uniforme)
+      ctx.strokeStyle = 'rgba(38,48,73,0.5)'; ctx.lineWidth = 1 * inv;
+      ctx.beginPath();
+      for (let i = i0; i <= i1; i++) { const gx = ax + i * step; ctx.moveTo(gx, ymin); ctx.lineTo(gx, ymax); }
+      for (let j = j0; j <= j1; j++) { const gy = ay + j * step; ctx.moveTo(xmin, gy); ctx.lineTo(xmax, gy); }
+      ctx.stroke();
+
+      // axes X et Y passant par l'origine
+      ctx.strokeStyle = 'rgba(131,144,179,0.75)'; ctx.lineWidth = 1.5 * inv;
+      ctx.beginPath();
+      ctx.moveTo(xmin, ay); ctx.lineTo(xmax, ay);
+      ctx.moveTo(ax, ymin); ctx.lineTo(ax, ymax);
+      ctx.stroke();
+
+      // graduations
+      ctx.font = `${9 * inv}px ui-monospace, monospace`;
+      ctx.fillStyle = 'rgba(131,144,179,0.95)';
+      ctx.textAlign = 'center';
+      for (let i = i0; i <= i1; i++) {
+        if (i === 0) continue;
+        const gx = ax + i * step;
+        ctx.fillText(String(Math.round(i * step)), gx, ay - 3 * inv);
+      }
+      ctx.textAlign = 'right';
+      for (let j = j0; j <= j1; j++) {
+        if (j === 0) continue;
+        const gy = ay + j * step;
+        ctx.fillText(String(Math.round(j * step)), ax - 4 * inv, gy + 3 * inv);
+      }
+
+      // origine O
+      ctx.beginPath(); ctx.arc(ax, ay, 2.6 * inv, 0, 2 * Math.PI);
+      ctx.fillStyle = '#ffcf6b'; ctx.fill();
+      ctx.textAlign = 'left'; ctx.fillStyle = '#ffcf6b';
+      ctx.fillText('O', ax + 5 * inv, ay - 5 * inv);
+      ctx.textAlign = 'start';
+    }
+
+    /* ---------- 7. Boucle d'animation ------------------------------------- */
+    function frame() {
+      try {
+      ctx.fillStyle = '#0a0e17';
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.save();
+      ctx.translate(camera.tx, camera.ty);
+      ctx.scale(camera.scale, camera.scale);
+      const inv = 1 / camera.scale;
+
+      if (state.points && document.getElementById('showFrame').checked) drawFrame();
+
+      if (document.getElementById('showTarget').checked && state.points) {
+        ctx.beginPath();
+        state.points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+        ctx.closePath();
+        ctx.strokeStyle = 'rgba(131,144,179,0.4)';
+        ctx.lineWidth = 1 * inv; ctx.setLineDash([4 * inv, 5 * inv]); ctx.stroke(); ctx.setLineDash([]);
+      }
+
+      if (state.epicycles.length) {
+        const theta = (state.t * 2 * Math.PI) / M;
+        const showCircles = document.getElementById('showCircles').checked;
+        const N = Math.min(state.N, state.epicycles.length);
+
+        // 1) calcule toute la chaîne : centres successifs (dernier = point de la courbe)
+        const chain = [{ x: state.origin.x, y: state.origin.y }];
+        {
+          let x = state.origin.x, y = state.origin.y;
+          for (let j = 0; j < N; j++) {
+            const c = state.epicycles[j];
+            const ang = c.freq * theta + c.phase;
+            x += c.amp * Math.cos(ang);
+            y += c.amp * Math.sin(ang);
+            chain.push({ x, y });
+          }
+        }
+        const tip = chain[chain.length - 1];
+
+        // 2) dessine cercles + bras (chaque bras relie un centre à sa pointe)
+        for (let j = 0; j < N; j++) {
+          const c = state.epicycles[j];
+          const a0 = chain[j], a1 = chain[j + 1];
+          if (showCircles) {
+            ctx.beginPath(); ctx.arc(a0.x, a0.y, c.amp, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'rgba(77,212,255,0.10)'; ctx.lineWidth = 1 * inv; ctx.stroke();
+          }
+          ctx.beginPath(); ctx.moveTo(a0.x, a0.y); ctx.lineTo(a1.x, a1.y);
+          ctx.strokeStyle = c.freq > 0 ? 'rgba(77,212,255,0.6)' : 'rgba(255,92,138,0.55)';
+          ctx.lineWidth = 1.2 * inv; ctx.stroke();
+        }
+
+        // 2b) scénario : met en évidence le cercle courant et sa « transmission »
+        if (state.scenario.active && state.scenario.i >= 0 && state.scenario.i < N) {
+          const j = state.scenario.i, c = state.epicycles[j];
+          const a0 = chain[j], a1 = chain[j + 1];
+          ctx.beginPath(); ctx.arc(a0.x, a0.y, c.amp, 0, 2 * Math.PI);
+          ctx.strokeStyle = '#ffcf6b'; ctx.lineWidth = 2.2 * inv; ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(a0.x, a0.y); ctx.lineTo(a1.x, a1.y);
+          ctx.strokeStyle = '#ffcf6b'; ctx.lineWidth = 3 * inv; ctx.stroke();
+          ctx.beginPath(); ctx.arc(a1.x, a1.y, 4.5 * inv, 0, 2 * Math.PI);
+          ctx.fillStyle = '#8bff9e'; ctx.fill();
+          ctx.font = `${11 * inv}px ui-monospace, monospace`;
+          ctx.fillStyle = '#ffcf6b'; ctx.textAlign = 'left';
+          ctx.fillText(`cercle ${j + 1} · k=${c.freq} · r=${c.amp.toFixed(1)}`, a1.x + 7 * inv, a1.y - 7 * inv);
+        }
+
+        // 2c) étiquettes des cercles : restent affichées en permanence
+        if (document.getElementById('showLabels').checked) {
+          ctx.font = `${9.5 * inv}px ui-monospace, monospace`;
+          ctx.textAlign = 'left';
+          let labelsDrawn = 0;
+          for (let j = 0; j < N && labelsDrawn < 28; j++) {
+            const c = state.epicycles[j];
+            if (c.amp * camera.scale < 7) continue;
+            const a0 = chain[j], a1 = chain[j + 1];
+            const mx = (a0.x + a1.x) / 2, my = (a0.y + a1.y) / 2;
+            ctx.fillStyle = 'rgba(200,214,255,0.78)';
+            ctx.fillText(`cercle ${j + 1} · k=${c.freq} · r=${c.amp.toFixed(1)}`, mx + 4 * inv, my - 4 * inv);
+            labelsDrawn++;
+          }
+        }
+
+        // 3) coordonnées des points (option) — chaque centre annoté, point final en évidence
+        if (document.getElementById('showCoords').checked) {
+          ctx.font = `${9.5 * inv}px ui-monospace, monospace`;
+          ctx.fillStyle = 'rgba(200,210,240,0.85)'; ctx.textAlign = 'left';
+          const shown = Math.min(chain.length - 1, 12);
+          for (let j = 0; j < shown; j++) {
+            const p = chain[j];
+            ctx.fillText(`(${p.x.toFixed(0)},${p.y.toFixed(0)})`, p.x + 4 * inv, p.y - 4 * inv);
+          }
+          ctx.fillStyle = '#8bff9e';
+          ctx.font = `${11 * inv}px ui-monospace, monospace`;
+          ctx.fillText(`(${tip.x.toFixed(1)},${tip.y.toFixed(1)})`, tip.x + 6 * inv, tip.y + 13 * inv);
+        }
+
+        // 4) trace de la courbe reconstruite par la pointe
+        state.trace.push({ x: tip.x, y: tip.y });
+        if (state.trace.length > M * 3) state.trace.shift();
+        ctx.beginPath();
+        state.trace.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+        ctx.strokeStyle = '#8bff9e'; ctx.lineWidth = 2 * inv; ctx.stroke();
+
+        ctx.beginPath(); ctx.arc(tip.x, tip.y, 3.5 * inv, 0, 2 * Math.PI); ctx.fillStyle = '#ff5c8a'; ctx.fill();
+        ctx.beginPath(); ctx.arc(state.origin.x, state.origin.y, 2.2 * inv, 0, 2 * Math.PI);
+        ctx.fillStyle = 'rgba(255,207,107,0.9)'; ctx.fill();
+
+        // 5) détails pas à pas (throttle ~12 fps)
+        const now = performance.now();
+        if (now - lastLive > 85) { lastLive = now; updateStepList(chain); }
+
+        if (state.playing) state.t = (state.t + state.speed) % M;
+      }
+
+      if (state.drawing && state.sketch.length) {
+        ctx.beginPath();
+        state.sketch.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+        ctx.strokeStyle = '#4dd4ff'; ctx.lineWidth = 2 * inv; ctx.stroke();
+      }
+      ctx.restore();
+
+      drawWave();
+      tickFloat();
+      requestAnimationFrame(frame);
+      } catch (err) {
+        // Empêche l'arrêt total de l'animation si une mise à jour échoue
+        requestAnimationFrame(frame);
+      }
+    }
+
+    /* ---------- 8. Interactions (souris + tactile) ------------------------ */
+    let tool = 'draw';
+    const pointers = new Map();
+    let panning = false, lastPan = null, pinchDist = 0, pinchMid = null;
+
+    function pos(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+    function twoPointers() { const it = [...pointers.values()]; return [it[0], it[1]]; }
+
+    cv.addEventListener('pointerdown', e => {
+      cv.setPointerCapture(e.pointerId);
+      pointers.set(e.pointerId, pos(e));
+      if (pointers.size === 2) {
+        const [a, b] = twoPointers();
+        pinchDist = Math.hypot(a.x - b.x, a.y - b.y);
+        pinchMid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        state.drawing = false; state.sketch = [];
+      } else if (pointers.size === 1) {
+        if (tool === 'draw') {
+          stopProgression();
+          state.drawing = true;
+          state.sketch = [toWorld(pos(e))];
+          setHint('Relâche pour transformer le dessin en épicycles…');
+        } else {
+          panning = true; lastPan = pos(e);
+        }
+      }
+    });
+
+    cv.addEventListener('pointermove', e => {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, pos(e));
+      if (pointers.size >= 2) {
+        const [a, b] = twoPointers();
+        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        if (pinchDist > 0) zoomAt(mid, dist / pinchDist);
+        camera.tx += mid.x - pinchMid.x; camera.ty += mid.y - pinchMid.y;
+        pinchDist = dist; pinchMid = mid;
+      } else if (pointers.size === 1) {
+        const p = pos(e);
+        if (state.drawing) {
+          const wp = toWorld(p);
+          const last = state.sketch[state.sketch.length - 1];
+          if (!last || Math.hypot(wp.x - last.x, wp.y - last.y) > 2 / camera.scale) state.sketch.push(wp);
+        } else if (panning) {
+          camera.tx += p.x - lastPan.x; camera.ty += p.y - lastPan.y; lastPan = p;
+        }
+      }
+    });
+
+    function endPointer(e) {
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) { pinchDist = 0; }
+      if (pointers.size === 0) {
+        if (state.drawing && state.sketch.length >= 3) {
+          stopScenario();
+          loadShape(resampleClosed(state.sketch.slice(), M));
+          setHint('Courbe transformée ! Ajuste N, zoome, ou lance la progression.');
+        }
+        state.drawing = false; panning = false;
+      }
+    }
+    cv.addEventListener('pointerup', endPointer);
+    cv.addEventListener('pointercancel', endPointer);
+
+    cv.addEventListener('wheel', e => {
+      e.preventDefault();
+      zoomAt(pos(e), e.deltaY < 0 ? 1.12 : 1 / 1.12);
+    }, { passive: false });
+
+    document.querySelectorAll('#tools [data-tool]').forEach(b => {
+      b.addEventListener('click', () => {
+        tool = b.dataset.tool;
+        document.querySelectorAll('#tools [data-tool]').forEach(x => x.classList.toggle('active', x === b));
+        cv.classList.toggle('pan', tool === 'pan');
+      });
+    });
+    document.getElementById('zoomIn').addEventListener('click', () => zoomAt({ x: W / 2, y: H / 2 }, 1.05));
+    document.getElementById('zoomOut').addEventListener('click', () => zoomAt({ x: W / 2, y: H / 2 }, 1 / 1.05));
+    document.getElementById('fit').addEventListener('click', fitView);
+
+    /* --- vue temporelle détachable : fenêtre popup connectée (postMessage) --- */
+    let popupWin = null, lastPop = 0;
+
+    const POPUP_HTML = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vue temporelle x(t) / y(t)</title>
+<style>
+  :root{--bg:#0a0e17;--panel:#111726;--panel-2:#0d1322;--line:#263049;--text:#e6ecff;--muted:#8290b3;--accent:#4dd4ff;--accent-2:#ff5c8a;--accent-3:#8bff9e;}
+  *{box-sizing:border-box;} html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;overflow:hidden;}
+  body{display:flex;flex-direction:column;}
+  header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--panel);font-size:12px;flex-wrap:wrap;}
+  header .t{font-weight:600;} header .t i{color:var(--accent-2);font-style:normal;} header .t b{color:var(--accent);}
+  header .right{display:flex;align-items:center;gap:10px;margin-left:auto;}
+  header .meta{color:var(--muted);font-family:ui-monospace,monospace;font-size:11px;}
+  .ctrls{display:flex;align-items:center;gap:4px;}
+  .ctrls button{width:26px;height:24px;display:grid;place-items:center;border:1px solid var(--line);background:var(--panel-2);color:var(--text);border-radius:6px;cursor:pointer;font-size:14px;line-height:1;padding:0;}
+  .ctrls button:hover{border-color:var(--accent);color:var(--accent);}
+  .ctrls .badge{min-width:44px;text-align:center;font-family:ui-monospace,monospace;font-size:11px;color:var(--muted);}
+  #wrap{flex:1;min-height:0;position:relative;overflow:hidden;}
+  canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none;}
+  canvas.pan{cursor:grabbing;}
+  footer{border-top:1px solid var(--line);padding:7px 12px;display:flex;gap:14px;flex-wrap:wrap;font-family:ui-monospace,monospace;font-size:11px;color:var(--muted);}
+  footer b{color:var(--accent-3);}
+</style></head><body>
+<header>
+  <span class="t">Vue temporelle détachée · <b>x(t)</b> <i>y(t)</i></span>
+  <div class="right">
+    <span class="meta">connectée à la fenêtre principale</span>
+    <div class="ctrls">
+      <button id="zOut" type="button" title="Dézoomer">−</button>
+      <span class="badge" id="zBadge">100%</span>
+      <button id="zIn" type="button" title="Zoomer">+</button>
+      <button id="zFit" type="button" title="Ajuster">⤢</button>
+    </div>
+  </div>
+</header>
+<div id="wrap"><canvas id="c"></canvas></div>
+<footer>
+  <span>t = <b id="ft">–</b></span>
+  <span>N = <b id="fN">–</b></span>
+  <span>θ = <b id="fth">–</b></span>
+  <span>point = <b id="fpt">–</b></span>
+</footer>
+<script>
+  var S = null, cv = document.getElementById('c'), g = cv.getContext('2d'), wrap = document.getElementById('wrap');
+  var DPR = Math.min(window.devicePixelRatio || 1, 2);
+  var view = { z: 1, x: 0, y: 0 };
+  var ZMIN = 0.5, ZMAX = 40;
+  function updateBadge(){ document.getElementById('zBadge').textContent = Math.round(view.z * 100) + '%'; }
+  function zoomAt(px, py, factor){
+    var z2 = Math.min(ZMAX, Math.max(ZMIN, view.z * factor));
+    var rx = (px - view.x) / view.z, ry = (py - view.y) / view.z;
+    view.z = z2; view.x = px - rx * z2; view.y = py - ry * z2;
+    updateBadge(); draw();
+  }
+  function resetView(){ view.z = 1; view.x = 0; view.y = 0; updateBadge(); draw(); }
+  function reconstructAt(s, N) {
+    var theta = (s * 2 * Math.PI) / S.M, x = S.origin.x, y = S.origin.y;
+    for (var j = 0; j < N; j++) {
+      var c = S.epi[j], ang = c.freq * theta + c.phase;
+      x += c.amp * Math.cos(ang); y += c.amp * Math.sin(ang);
+    }
+    return { x: x, y: y };
+  }
+  function draw() {
+    if (!S) return;
+    var r = cv.getBoundingClientRect(), w = r.width, h = r.height;
+    if (!w || !h) return;
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
+    g.setTransform(DPR, 0, 0, DPR, 0, 0); g.clearRect(0, 0, w, h);
+    var vr = S.valueRange, M = S.M, N = Math.min(S.N, S.epi.length);
+    var mapY = function (v) { return h - 6 - ((v - vr.y0) / (vr.y1 - vr.y0)) * (h - 12); };
+    var mapX = function (s) { return (s / (M - 1)) * w; };
+    g.save();
+    g.translate(view.x, view.y); g.scale(view.z, view.z);
+    g.strokeStyle = 'rgba(38,48,73,0.9)'; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(0, h / 2); g.lineTo(w, h / 2); g.stroke();
+    g.setLineDash([3, 3]); g.lineWidth = 1; g.globalAlpha = 0.5;
+    [['x', '#4dd4ff'], ['y', '#ff5c8a']].forEach(function (k) {
+      g.beginPath();
+      for (var s = 0; s < M; s++) { var v = k[0] === 'x' ? S.points[s].x : S.points[s].y; var px = mapX(s), py = mapY(v); s ? g.lineTo(px, py) : g.moveTo(px, py); }
+      g.strokeStyle = k[1]; g.stroke();
+    });
+    g.globalAlpha = 1; g.setLineDash([]); g.lineWidth = 1.8;
+    [['x', '#4dd4ff'], ['y', '#ff5c8a']].forEach(function (k) {
+      g.beginPath();
+      for (var s = 0; s < M; s++) { var p = reconstructAt(s, N); var v = k[0] === 'x' ? p.x : p.y; var px = mapX(s), py = mapY(v); s ? g.lineTo(px, py) : g.moveTo(px, py); }
+      g.strokeStyle = k[1]; g.stroke();
+    });
+    var cxp = mapX(S.t);
+    g.beginPath(); g.moveTo(cxp, 0); g.lineTo(cxp, h);
+    g.strokeStyle = 'rgba(139,255,158,0.8)'; g.lineWidth = 1; g.stroke();
+    var tip = reconstructAt(Math.floor(S.t) % M, N);
+    [[tip.x, '#4dd4ff'], [tip.y, '#ff5c8a']].forEach(function (q) {
+      g.beginPath(); g.arc(cxp, mapY(q[0]), 3, 0, 2 * Math.PI); g.fillStyle = q[1]; g.fill();
+    });
+    g.restore();
+    document.getElementById('ft').textContent = S.t.toFixed(1);
+    document.getElementById('fN').textContent = N;
+    document.getElementById('fth').textContent = ((S.t * 2 * Math.PI) / M).toFixed(3) + ' rad';
+    document.getElementById('fpt').textContent = '(' + tip.x.toFixed(1) + ', ' + tip.y.toFixed(1) + ')';
+  }
+  cv.addEventListener('wheel', function(e){ e.preventDefault(); var r = cv.getBoundingClientRect(); zoomAt(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.12 : 1 / 1.12); }, {passive:false});
+  var dragging = false, lx = 0, ly = 0;
+  cv.addEventListener('mousedown', function(e){ dragging = true; lx = e.clientX; ly = e.clientY; cv.classList.add('pan'); });
+  window.addEventListener('mousemove', function(e){ if(!dragging) return; view.x += e.clientX - lx; view.y += e.clientY - ly; lx = e.clientX; ly = e.clientY; draw(); });
+  window.addEventListener('mouseup', function(){ dragging = false; cv.classList.remove('pan'); });
+  cv.addEventListener('dblclick', resetView);
+  document.getElementById('zIn').addEventListener('click', function(){ var r = cv.getBoundingClientRect(); zoomAt(r.width/2, r.height/2, 1.15); });
+  document.getElementById('zOut').addEventListener('click', function(){ var r = cv.getBoundingClientRect(); zoomAt(r.width/2, r.height/2, 1/1.15); });
+  document.getElementById('zFit').addEventListener('click', resetView);
+  window.addEventListener('message', function (ev) {
+    var d = ev.data;
+    if (d && d.type === 'shape') { S = { M: d.M, origin: d.origin, epi: d.epi, points: d.points, valueRange: d.valueRange, N: d.N, t: d.t }; draw(); }
+    else if (d && d.type === 'tick' && S) { S.t = d.t; S.N = d.N; draw(); }
+  });
+  window.addEventListener('resize', draw);
+  if (window.ResizeObserver) { try { new ResizeObserver(function(){ draw(); }).observe(wrap); } catch (e) {} }
+  updateBadge();
+  draw();
+<\/script></body></html>`;
+
+    function sendFloatFull() {
+      if (!popupWin || popupWin.closed) return;
+      popupWin.postMessage({ type: 'shape', M, origin: state.origin, epi: state.epicycles, points: state.points, valueRange: state.valueRange, N: state.N, t: state.t }, '*');
+    }
+    function openWaveFloat() {
+      const pw = Math.max(520, Math.min(1200, Math.round((window.screen.availWidth || 1280) * 0.8)));
+      const ph = Math.max(320, Math.min(620, Math.round((window.screen.availHeight || 800) * 0.5)));
+      popupWin = window.open('', 'fourierWavePopup', 'width=' + pw + ',height=' + ph + ',menubar=no,toolbar=no,resizable=yes,scrollbars=no');
+      if (!popupWin) {   // popup bloquée -> repli sur la modale interne
+        document.getElementById('waveDetachWrap').classList.add('on');
+        requestAnimationFrame(resizeWaveFloat);
+        return;
+      }
+      popupWin.document.open();
+      popupWin.document.write(POPUP_HTML);
+      popupWin.document.close();
+      setTimeout(sendFloatFull, 80);
+    }
+    function closeWaveFloat() {
+      document.getElementById('waveDetachWrap').classList.remove('on');
+      if (popupWin && !popupWin.closed) popupWin.close();
+      popupWin = null;
+    }
+    function tickFloat() {
+      if (popupWin && !popupWin.closed) {
+        const now = performance.now();
+        if (now - lastPop > 33) { lastPop = now; popupWin.postMessage({ type: 'tick', t: state.t, N: state.N }, '*'); }
+      }
+    }
+    document.getElementById('waveDetach').addEventListener('click', openWaveFloat);
+    document.getElementById('wfClose').addEventListener('click', closeWaveFloat);
+    document.getElementById('waveDetachWrap').addEventListener('click', e => {
+      if (e.target.id === 'waveDetachWrap') closeWaveFloat();
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeWaveFloat(); });
+    window.addEventListener('resize', resizeWaveFloat);
+
+    /* --- documentation accessible aux visiteurs (page + fenêtre popup) --- */
+    document.getElementById('openDocs').addEventListener('click', () => {
+      window.open('docs.html', 'fourierDocs', 'width=1000,height=760');
+    });
+
+    function resampleClosed(src, n) {
+      const cum = [0];
+      for (let i = 1; i <= src.length; i++) {
+        const a = src[i - 1], b = src[i % src.length];
+        cum.push(cum[i - 1] + Math.hypot(b.x - a.x, b.y - a.y));
+      }
+      const total = cum[cum.length - 1] || 1;
+      const out = [];
+      for (let k = 0; k < n; k++) {
+        const target = (k / n) * total;
+        let i = 1; while (cum[i] < target) i++;
+        const seg = (cum[i] - cum[i - 1]) || 1;
+        const f = (target - cum[i - 1]) / seg;
+        const a = src[i - 1], b = src[i % src.length];
+        out.push({ x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f });
+      }
+      return out;
+    }
+
+    function setHint(msg) { document.getElementById('hint').textContent = msg; }
+
+    function setN(v) {
+      const maxN = state.epicycles.length || 1;
+      state.N = Math.min(maxN, Math.max(1, v));
+      document.getElementById('nRange').value = state.N;
+      syncN();
+      state.trace = [];
+    }
+
+    function startProgression() {
+      stopProgression();
+      state.trace = []; state.N = 0;
+      const b = document.getElementById('progression');
+      b.classList.add('on'); b.textContent = '⏸ Arrêter la progression';
+      state.progTimer = setInterval(() => {
+        if (state.N >= state.epicycles.length) { stopProgression(); return; }
+        setN(state.N + 1);
+      }, 320);
+    }
+    function stopProgression() {
+      if (state.progTimer) { clearInterval(state.progTimer); state.progTimer = null; }
+      const b = document.getElementById('progression');
+      b.classList.remove('on'); b.textContent = '▶ Lancer la progression';
+    }
+
+    /* --- détails pas à pas : chaque vecteur, son angle, sa transmission --- */
+    function updateStepList(chain) {
+      const el = document.getElementById('stepList');
+      if (!el) return;
+      const N = Math.min(state.N, state.epicycles.length);
+      const theta = (state.t * 2 * Math.PI) / M;
+      const lines = [];
+      const shown = Math.min(N, 14);
+      for (let j = 0; j < shown; j++) {
+        const c = state.epicycles[j];
+        const a0 = chain[j], a1 = chain[j + 1];
+        const ang = c.freq * theta + c.phase;
+        const dx = a1.x - a0.x, dy = a1.y - a0.y;
+        lines.push(`Cercle ${String(j + 1).padStart(2)}  k=${String(c.freq).padStart(3)}  r=${c.amp.toFixed(1).padStart(6)}  φ=${c.phase.toFixed(2).padStart(6)}`);
+        lines.push(`   θₖ=k·t+φ=${ang.toFixed(2).padStart(7)}   dx=${dx.toFixed(1).padStart(6)}  dy=${dy.toFixed(1).padStart(6)}`);
+        lines.push(`   centre(${a0.x.toFixed(0)},${a0.y.toFixed(0)}) → pointe(${a1.x.toFixed(0)},${a1.y.toFixed(0)})`);
+        lines.push('');
+      }
+      if (N > shown) lines.push(`… +${N - shown} autres cercles (non affichés)`);
+      lines.push('───────────────');
+      const tip = chain[chain.length - 1];
+      lines.push(`t=${state.t.toFixed(1)}   θ=${theta.toFixed(3)} rad`);
+      lines.push(`point final (x,y)=(${tip.x.toFixed(1)}, ${tip.y.toFixed(1)})`);
+      el.textContent = lines.join('\n');
+    }
+
+    /* --- scénario : comment les cercles communiquent --- */
+    function scenarioCaption(j) {
+      const N = Math.min(state.N, state.epicycles.length);
+      const c = state.epicycles[j];
+      const isFirst = j === 0, isLast = j === N - 1;
+      let s = `<b>Cercle ${j + 1}</b> · <span class="k">k=${c.freq}</span> · rayon r=${c.amp.toFixed(1)}<br>`;
+      s += `Son centre = ${isFirst ? 'le <b>centre de gravité</b> C₀ (départ de la chaîne)' : 'la <b>pointe du cercle ' + j + '</b>'}. `;
+      s += isLast
+        ? 'Sa pointe EST le point (x<sub>N</sub>, y<sub>N</sub>) qui dessine la courbe.'
+        : 'Sa pointe devient le <b>centre du cercle ' + (j + 2) + '</b>.';
+      return s;
+    }
+    function showCaption(html) { const c = document.getElementById('caption'); c.innerHTML = html; c.classList.add('on'); }
+    function hideCaption() { document.getElementById('caption').classList.remove('on'); }
+
+    function startScenario() {
+      if (!state.epicycles.length) return;
+      stopScenario();
+      state.scenario.active = true; state.scenario.i = 0;
+      showCaption(scenarioCaption(0));
+      const b = document.getElementById('scenario');
+      b.classList.add('on'); b.textContent = '⏹ Arrêter le scénario';
+      state.scenario.timer = setInterval(() => {
+        const N = Math.min(state.N, state.epicycles.length);
+        state.scenario.i++;
+        if (state.scenario.i < N) {
+          showCaption(scenarioCaption(state.scenario.i));
+        } else {
+          clearInterval(state.scenario.timer); state.scenario.timer = null;
+          showCaption('<b>Les cercles communiquent</b> : chacun reçoit la pointe du précédent comme centre. L\'information circule du premier au dernier — les <b>grands rayons</b> donnent la forme, les <b>petits</b> ajoutent les détails. La pointe finale trace la courbe.');
+        }
+      }, 1300);
+    }
+    function stopScenario() {
+      if (state.scenario.timer) { clearInterval(state.scenario.timer); state.scenario.timer = null; }
+      state.scenario.active = false; state.scenario.i = -1;
+      hideCaption();
+      const b = document.getElementById('scenario');
+      b.classList.remove('on'); b.textContent = '▶ Expliquer les cercles';
+    }
+
+    /* --- vitesse logarithmique : de 4× jusqu'à la « vitesse tortue » --- */
+    const SPEED_MIN = 0.004, SPEED_MAX = 4;
+    const sliderToSpeed = v => SPEED_MIN * Math.pow(SPEED_MAX / SPEED_MIN, v / 100);
+    const speedToSlider = s => 100 * Math.log(s / SPEED_MIN) / Math.log(SPEED_MAX / SPEED_MIN);
+    function refreshSpeedLabel() {
+      document.getElementById('spVal').textContent =
+        state.speed.toFixed(state.speed < 0.1 ? 3 : 2) + '×' + (state.speed <= 0.02 ? ' 🐢' : '');
+    }
+
+    /* ---------- 9. Contrôles du panneau ----------------------------------- */
+    document.getElementById('preset').addEventListener('change', e => {
+      stopProgression(); stopScenario();
+      state.N = 1;
+      loadShape(presetPoints(e.target.value));
+      setHint('Forme chargée. Clique-glisse sur le canevas pour dessiner la tienne.');
+    });
+    document.getElementById('clear').addEventListener('click', () => {
+      stopProgression(); stopScenario();
+      state.points = null; state.epicycles = []; state.trace = [];
+      state.errorCurve = { curve: [], scale: 1 };
+      document.querySelector('#coefTable tbody').innerHTML = '';
+      ['mMax', 'mRms', 'mRel', 'mEner'].forEach(id => document.getElementById(id).textContent = '–');
+      camera.scale = 1; camera.tx = 0; camera.ty = 0; updateZoomBadge();
+      drawChart();
+      setHint('À toi de jouer : clique-glisse pour dessiner une courbe fermée.');
+    });
+    document.getElementById('nRange').addEventListener('input', e => { stopProgression(); setN(+e.target.value); });
+    document.getElementById('nMinus').addEventListener('click', () => { stopProgression(); setN(state.N - 1); });
+    document.getElementById('nPlus').addEventListener('click', () => { stopProgression(); setN(state.N + 1); });
+    document.getElementById('progression').addEventListener('click', () => { state.progTimer ? stopProgression() : startProgression(); });
+    document.getElementById('speed').addEventListener('input', e => { state.speed = sliderToSpeed(+e.target.value); refreshSpeedLabel(); });
+    document.getElementById('turtle').addEventListener('click', () => {
+      state.speed = 0.01;
+      document.getElementById('speed').value = Math.round(speedToSlider(0.01));
+      refreshSpeedLabel();
+      setHint('🐢 Vitesse tortue : la pointe avance très lentement — observe chaque déplacement des cercles.');
+    });
+    document.getElementById('scenario').addEventListener('click', () => { state.scenario.active ? stopScenario() : startScenario(); });
+    document.getElementById('playPause').addEventListener('click', e => { state.playing = !state.playing; e.target.textContent = state.playing ? 'Pause' : 'Reprendre'; });
+    document.getElementById('showCircles').addEventListener('change', () => { state.trace = []; });
+
+    /* ---------- Démarrage -------------------------------------------------- */
+    resize();
+    state.speed = sliderToSpeed(80);
+    refreshSpeedLabel();
+    loadShape(presetPoints('heart'));
+    requestAnimationFrame(frame);
+  </script>
+</body>
+
+</html>
